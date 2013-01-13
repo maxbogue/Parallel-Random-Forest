@@ -1,35 +1,40 @@
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-public abstract class DecisionTree {
-    public static DecisionTree growDecisionTree(
-            Map<String,List<String>> attrs, List<Sample> samples)
+public abstract class DecisionTree<D> {
+    public static <D> DecisionTree<D> growDecisionTree(
+            Map<String,List<String>> attrs, List<Sample<D>> samples)
         throws IllegalArgumentException
     {
         // Short circuit on empty list of samples.
         if (samples.isEmpty()) {
-            raise IllegalArgumentException("Need samples to grow a DecisionTree.");
+            throw new IllegalArgumentException("Need samples to grow a DecisionTree.");
         }
         // See how many unique decisions are left in the set of samples.
-        Set<String> decisions = new HashSet<String>();
-        for (Sample sample : samples) {
+        Set<D> decisions = new HashSet<D>();
+        for (Sample<D> sample : samples) {
             decisions.add(sample.decision);
         }
         // If only one, then decide on it.
         if (decisions.size() == 1) {
-            return Decision(decisions.toArray()[0]);
+            for (D decision : decisions) {
+                return new Decision<D>(decision);
+            }
         }
         // Otherwise we have more than one; find the best to split on.
-        
-    }
-    public abstract String decide(Map<String,String> choices);
 
-    private static double entropy(List<Sample> samples) {
+        return null;
+    }
+    public abstract D decide(Map<String,String> choices);
+
+    private double entropy(List<Sample<D>> samples) {
         double total = (double)samples.size();
         // We need the breakdown of decision occurences; use a counter.
-        Counter<String> counter = new Counter<String>();
-        for (Sample sample : samples) {
+        Counter<D> counter = new Counter<D>();
+        for (Sample<D> sample : samples) {
             counter.add(sample.decision);
         }
         double entropy_total = 0.0;
@@ -43,24 +48,24 @@ public abstract class DecisionTree {
     }
 }
 
-class Decision extends DecisionTree {
-    public String value;
-    public Decision(String value) {
-        this.value = value;
+class Decision<D> extends DecisionTree<D> {
+    public D decision;
+    public Decision(D decision) {
+        this.decision = decision;
     }
-    public String decide(Map<String,String> choices) {
-        return value;
+    public D decide(Map<String,String> choices) {
+        return decision;
     }
 }
 
-class Tree extends DecisionTree {
+class Tree<D> extends DecisionTree<D> {
     public String attr;
-    public Map<String,DecisionTree> children;
-    public Tree(String attr, Map<String,DecisionTree> children) {
+    public Map<String,DecisionTree<D>> children;
+    public Tree(String attr, Map<String,DecisionTree<D>> children) {
         this.attr = attr;
         this.children = children;
     }
-    public String decide(Map<String,String> choices) {
+    public D decide(Map<String,String> choices) {
         String value = choices.get(attr);
         return children.get(value).decide(choices);
     }
