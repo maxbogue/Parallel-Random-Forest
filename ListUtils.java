@@ -38,4 +38,9 @@ public class ListUtils {
         return currentMode;
     }
 
+    public static <T> T random(List<T> list) {
+        int i = (int)(Math.random() * list.size());
+        return list.get(i);
+    }
+
 }
