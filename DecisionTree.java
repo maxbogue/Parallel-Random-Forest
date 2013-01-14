@@ -10,6 +10,13 @@ public abstract class DecisionTree<D> {
             Map<String,List<String>> attrs, List<Sample<D>> samples)
         throws IllegalArgumentException
     {
+        return growDecisionTree(attrs, samples, 0);
+    }
+
+    public static <D> DecisionTree<D> growDecisionTree(
+            Map<String,List<String>> attrs, List<Sample<D>> samples, int m)
+        throws IllegalArgumentException
+    {
         // Short circuit on empty list of samples.
         if (samples.isEmpty()) {
             throw new IllegalArgumentException("Need samples to grow a DecisionTree.");
@@ -29,10 +36,19 @@ public abstract class DecisionTree<D> {
         if (attrs.isEmpty()) {
             return new Decision<D>(decisions.mode());
         }
-        String best = bestAttribute(attrs, samples);
-        Map<String,DecisionTree<d>> children = new HashMap<String,DecisionTree<D>>();
-        for (final String v : attrs.get(best)) {
-            List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate(best, v));
+        Map<String,List<String>> selectedAttrs;
+        if (m > 0) {
+            selectedAttrs = new HashMap<String,List<String>>();
+            for (String attr : ListUtils.sample(attrs.keySet(), m)) {
+                selectedAttrs.put(attr, attrs.get(attr));
+            }
+        } else {
+            selectedAttrs = attrs;
+        }
+        String best = bestAttribute(selectedAttrs, samples);
+        Map<String,DecisionTree<D>> children = new HashMap<String,DecisionTree<D>>();
+        for (String v : selectedAttrs.get(best)) {
+            List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(best, v));
             if (vSamples.isEmpty()) {
                 children.put(v, new Decision<D>(decisions.mode()));
             } else {
@@ -48,10 +64,10 @@ public abstract class DecisionTree<D> {
         double totalH = entropy(samples);
         double maxIG = 0.0;
         String result = null;
-        for (final String attr : attrs.keySet()) {
+        for (String attr : attrs.keySet()) {
             List<String> values = attrs.get(attr);
             double informationGain = totalH;
-            for (final String v : values) {
+            for (String v : values) {
                 List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(attr, v));
                 informationGain -= (double)vSamples.size() / samples.size() * entropy(vSamples);
             }

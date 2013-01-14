@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,22 @@ class ListUtils {
     public static <T> T random(List<T> list) {
         int i = (int)(Math.random() * list.size());
         return list.get(i);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> sample(Collection<T> source, int m) {
+        int n = source.size();
+        if (n <= m) {
+            return new ArrayList<T>(source);
+        }
+        List<T> result = new ArrayList<T>(m);
+        T[] a = (T[])source.toArray();
+        for (int i = 0; i < m; i++) {
+            int r = i + (int)(Math.random() * (n - i));
+            result.add(a[r]);
+            a[r] = a[i];
+        }
+        return result;
     }
 
 }
