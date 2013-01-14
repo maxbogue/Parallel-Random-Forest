@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -5,10 +6,28 @@ import java.util.Map;
 /**
  * A collection of utility methods for lists.
  */
-public class ListUtils {
+class ListUtils {
 
     /** Private constructor to enforce static class... */
     private ListUtils() {}
+
+    public static <T> List<T> filter(List<T> ls, Predicate<T> p) {
+        List<T> result = new ArrayList<T>();
+        for (T e : ls) {
+            if (p.test(e)) {
+                result.add(e);
+            }
+        }
+        return result;
+    }
+
+    public static <X,Y> List<Y> map(List<X> xs, Transform<X,Y> t) {
+        List<Y> ys = new ArrayList<Y>();
+        for (X x : xs) {
+            ys.add(t.transform(x));
+        }
+        return ys;
+    }
 
     /**
      * Find the element that occurs most in a list.
@@ -44,3 +63,6 @@ public class ListUtils {
     }
 
 }
+
+interface Predicate<T> { public boolean test(T e); }
+interface Transform<X,Y> { public Y transform(X x); }

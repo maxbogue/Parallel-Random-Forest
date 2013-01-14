@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class DecisionTree<D> {
+
     public static <D> DecisionTree<D> growDecisionTree(
             Map<String,List<String>> attrs, List<Sample<D>> samples)
         throws IllegalArgumentException
@@ -14,23 +15,44 @@ public abstract class DecisionTree<D> {
             throw new IllegalArgumentException("Need samples to grow a DecisionTree.");
         }
         // See how many unique decisions are left in the set of samples.
-        Set<D> decisions = new HashSet<D>();
+        Counter<D> decisions = new Counter<D>();
         for (Sample<D> sample : samples) {
             decisions.add(sample.decision);
         }
         // If only one, then decide on it.
         if (decisions.size() == 1) {
-            for (D decision : decisions) {
+            for (D decision : decisions.keySet()) {
                 return new Decision<D>(decision);
             }
         }
-        // Otherwise we have more than one; find the best to split on.
-
+        // If there are no attributes left somehow, take the mode decision.
+        if (attrs.isEmpty()) {
+            return new Decision<D>(decisions.mode());
+        }
+        String best = bestAttribute(attrs, samples);
         return null;
     }
-    public abstract D decide(Map<String,String> choices);
 
-    private double entropy(List<Sample<D>> samples) {
+    private static <D> String bestAttribute(Map<String,List<String>> attrs, List<Sample<D>> samples) {
+        double totalH = entropy(samples);
+        double maxIG = 0.0;
+        String result = null;
+        for (final String attr : attrs.keySet()) {
+            List<String> values = attrs.get(attr);
+            double informationGain = totalH;
+            for (final String v : values) {
+                List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(attr, v));
+                informationGain -= (double)vSamples.size() / samples.size() * entropy(vSamples);
+            }
+            if (informationGain > maxIG) {
+                maxIG = informationGain;
+                result = attr;
+            }
+        }
+        return result;
+    }
+
+    private static <D> double entropy(List<Sample<D>> samples) {
         double total = (double)samples.size();
         // We need the breakdown of decision occurences; use a counter.
         Counter<D> counter = new Counter<D>();
@@ -46,6 +68,20 @@ public abstract class DecisionTree<D> {
         }
         return entropy_total;
     }
+
+    private static class SamplePredicate<D> implements Predicate<Sample<D>> {
+        private String attr;
+        private String value;
+        public SamplePredicate(String attr, String value) {
+            this.attr = attr;
+            this.value = value;
+        }
+        public boolean test(Sample<D> sample) {
+            return sample.choices.get(attr) == value;
+        }
+    }
+
+    public abstract D decide(Map<String,String> choices);
 }
 
 class Decision<D> extends DecisionTree<D> {

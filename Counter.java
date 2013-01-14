@@ -22,4 +22,17 @@ class Counter<K> extends HashMap<K,Integer> {
         }
     }
 
+    public K mode() {
+        K mode = null;
+        Integer maxCount = 0;
+        for (K k : keySet()) {
+            Integer count = get(k);
+            if (count > maxCount) {
+                mode = k;
+                maxCount = count;
+            }
+        }
+        return mode;
+    }
+
 }
