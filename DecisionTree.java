@@ -30,7 +30,18 @@ public abstract class DecisionTree<D> {
             return new Decision<D>(decisions.mode());
         }
         String best = bestAttribute(attrs, samples);
-        return null;
+        Map<String,DecisionTree<d>> children = new HashMap<String,DecisionTree<D>>();
+        for (final String v : attrs.get(best)) {
+            List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate(best, v));
+            if (vSamples.isEmpty()) {
+                children.put(v, new Decision<D>(decisions.mode()));
+            } else {
+                Map<String,List<String>> attrsCopy = new HashMap<String,List<String>>(attrs);
+                attrsCopy.remove(best);
+                children.put(v, growDecisionTree(attrsCopy, vSamples));
+            }
+        }
+        return new Tree<D>(best, children);
     }
 
     private static <D> String bestAttribute(Map<String,List<String>> attrs, List<Sample<D>> samples) {
