@@ -63,6 +63,14 @@ class ListUtils {
         return list.get(i);
     }
 
+    public static <T> List<T> choices(List<T> source, int n) {
+        List<T> result = new ArrayList<T>(n);
+        for (int i = 0; i < n; i++) {
+            result.add(random(source));
+        }
+        return result;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> List<T> sample(Collection<T> source, int m) {
         int n = source.size();
