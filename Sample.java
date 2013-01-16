@@ -8,8 +8,13 @@ public class Sample<D> {
     public final Map<String,String> choices;
     public final D decision;
 
+    /**
+     * @param choices   The attr->value choices for this sample.
+     * @param decision  The decision for those choices.
+     */
     public Sample(Map<String,String> choices, D decision) {
         this.choices = choices;
         this.decision = decision;
     }
+
 }

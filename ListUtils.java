@@ -22,6 +22,13 @@ class ListUtils {
         return result;
     }
 
+    /**
+     * Converts a list of one type into a list of another type.
+     *
+     * @param xs    The list to convert.
+     * @param t     How to transform each element.
+     * @return      A new list of type Y.
+     */
     public static <X,Y> List<Y> map(List<X> xs, Transform<X,Y> t) {
         List<Y> ys = new ArrayList<Y>();
         for (X x : xs) {
@@ -58,11 +65,17 @@ class ListUtils {
         return currentMode;
     }
 
+    /**
+     * Pick a random element of a list.
+     */
     public static <T> T random(List<T> list) {
         int i = (int)(Math.random() * list.size());
         return list.get(i);
     }
 
+    /**
+     * Sample n values from a list WITH replacement.
+     */
     public static <T> List<T> choices(List<T> source, int n) {
         List<T> result = new ArrayList<T>(n);
         for (int i = 0; i < n; i++) {
@@ -71,6 +84,9 @@ class ListUtils {
         return result;
     }
 
+    /**
+     * Sample m values from a list WITHOUT replacement.
+     */
     @SuppressWarnings("unchecked")
     public static <T> List<T> sample(Collection<T> source, int m) {
         int n = source.size();
@@ -89,5 +105,8 @@ class ListUtils {
 
 }
 
+/** A predicate to use with filtering. */
 interface Predicate<T> { public boolean test(T e); }
+
+/** A transform for use in mapping a list. */
 interface Transform<X,Y> { public Y transform(X x); }

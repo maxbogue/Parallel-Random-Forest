@@ -152,29 +152,51 @@ public abstract class DecisionTree<D> {
         return entropy_total;
     }
 
+    /**
+     * A predicate to be used with ListUtils.filter() that matches only samples
+     * with a certain value for a specified attribute.
+     */
     private static class SamplePredicate<D> implements Predicate<Sample<D>> {
+
         private String attr;
         private String value;
+
+        /**
+         * @param attr  The attribute to match.
+         * @param value The value of attr to match.
+         */
         public SamplePredicate(String attr, String value) {
             this.attr = attr;
             this.value = value;
         }
+
+        /**
+         * Implement the Predicate interface.
+         *
+         * @param sample    A sample to test.
+         * @return          Whether the sample has value for attr.
+         */
         public boolean test(Sample<D> sample) {
             return sample.choices.get(attr) == value;
         }
+
     }
 
+    /**
+     * The key function for subclasses to implement to be decision trees.
+     *
+     * @param choices   The choices (values) for each attribute.
+     * @return          The decision for the given choices.
+     */
     public abstract D decide(Map<String,String> choices);
+
 }
 
 /**
- * Represents a decision node of a DecisionTree.
+ * Represents a decision (leaf) node of a DecisionTree.
  */
 class Decision<D> extends DecisionTree<D> {
 
-    /**
-     * The decision this node represents.
-     */
     public D decision;
 
     /**
@@ -195,15 +217,33 @@ class Decision<D> extends DecisionTree<D> {
 
 }
 
+/**
+ * Represents a non-decision node of a decision tree.
+ * Has an attribute, with a child subtree for each of the attribute's values.
+ */
 class Tree<D> extends DecisionTree<D> {
+
     public String attr;
     public Map<String,DecisionTree<D>> children;
+
+    /**
+     * @param attr      The attribute that this node splits on.
+     * @param children  The subtrees for each of the values for attr.
+     */
     public Tree(String attr, Map<String,DecisionTree<D>> children) {
         this.attr = attr;
         this.children = children;
     }
+
+    /**
+     * Recurse on the subtree for the value of attr in choices.
+     *
+     * @param choices   The values for each attribute.
+     * @return          A decision.
+     */
     public D decide(Map<String,String> choices) {
         String value = choices.get(attr);
         return children.get(value).decide(choices);
     }
+
 }
