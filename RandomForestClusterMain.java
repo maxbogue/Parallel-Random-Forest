@@ -5,8 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import edu.rit.mp.IntegerBuf;
 import edu.rit.mp.ObjectBuf;
+import edu.rit.mp.buf.IntegerItemBuf;
 import edu.rit.pj.Comm;
+import edu.rit.util.Range;
 
 /**
  * This class contains the main function that reads 
@@ -20,7 +23,9 @@ public class RandomForestClusterMain {
     static Map<Integer, List<String>> decisionbyvote=null;
     static List<String> results;
     static Map<Integer, List<String>> result;
-   
+    static List<RandomForest< String >> Forest;
+    static Range[] testrange;
+    static IntegerItemBuf counter;
     /**
      * The Main function for the cluster version
      * @param size      The number of trees in the forest.
@@ -41,8 +46,16 @@ public class RandomForestClusterMain {
         rank = world.rank();
         // Contains the total number of cluster systems available in Comm
         size = world.size();
-        //To encapsulate the decision list transfered to the rank 0 System.
-        ObjectBuf< List< String > > gather;
+        //Random forest cluster object
+        @SuppressWarnings("rawtypes")
+        RandomForest clusterobject; 
+
+        // IntegerBuf to get the number of correct decision
+        counter= IntegerBuf.buffer();
+        //To encapsulate the tree subset transfered to the rank 0 System.
+        ObjectBuf< RandomForest< String > > gatherforest; 
+        //To encapsulate the randomforest transfered from rank 0 System.
+        ObjectBuf< List<RandomForest< String >> > gatherrandomforest; 
         // # of trees in the random forest.
         int numoftrees=Integer.parseInt(args[0]);
         //The number of sample records to choose with replacement for each tree
@@ -50,9 +63,16 @@ public class RandomForestClusterMain {
         //The best attribute at each node in a tree will be chosen
         //from m attributes selected at random without replacement.
         int m= Integer.parseInt(args[2]);
+        // Random 
         Scanner scan;
+        //this will split the c value to hold b values form all its column process
+        Range[] rowrange=new Range(0,numoftrees-1).subranges(size);
+        //this will split the c value to hold b values form all its column process
+        testrange = new Range(0, 99).subranges(size);
         //To hold the attribute -> value mapping of each sample needed for learning
         Map< String,String > choices = new HashMap< String,String >();
+        // The total forest got from all the cluster systems.
+        Forest = new ArrayList<RandomForest< String >>();
         //To hold the set of attributes and its values. 
         Map< String,List< String > > attrs = new HashMap< String,List< String > >();
         // holds the decision of each choice during learning
@@ -71,7 +91,8 @@ public class RandomForestClusterMain {
         List<Sample<String>> testsamples = new ArrayList<Sample<String>>();
         //stores the result of test sample from each cluster
         result = new HashMap<Integer, List<String>>();
-        gather = ObjectBuf.buffer();
+        gatherforest=ObjectBuf.buffer();
+        gatherrandomforest = ObjectBuf.buffer();
         int testcount=0;
         try {
             scan = new Scanner(sample);
@@ -81,8 +102,8 @@ public class RandomForestClusterMain {
             for(int i = 0;i < number_of_attributes; i++)
             {
                 attributes[i] = scan.next();
-                }
-            
+            }
+
             // Gets the different values present for each attributes.
             for(int i = 0;i < number_of_attributes; i++) 
             {
@@ -93,8 +114,8 @@ public class RandomForestClusterMain {
                 }
                 attrs.put(attributes[i], type);
                 type = new ArrayList<String>();
-                }
-                 // Reads the choices and the decisions 
+            }
+            // Reads the choices and the decisions 
             while(scan.hasNext()) 
             {
                 testcount++;
@@ -102,71 +123,99 @@ public class RandomForestClusterMain {
                 // Reads the attribute -> value choices.
                 for(int i = 0;i < number_of_attributes; i++) 
                 {
-                   choices.put(attributes[i], scan.next());
+                    choices.put(attributes[i], scan.next());
                 }
                 // Each choice along with its respective decision is added to the samples list.
                 if(testcount > 100){
-                samples.add(new Sample< String >(choices, decision));
+                    samples.add(new Sample< String >(choices, decision));
                 }
                 else{
                     testsamples.add(new Sample< String >(choices, decision));
                 } 
                 choices = new HashMap< String, String >();
-                }
-            } catch (FileNotFoundException e) 
-            {
+            }
+        } catch (FileNotFoundException e) 
+        {
             System.err.print("File Not found");
             System.exit(1);
-            }
+        }
+
+        clusterobject = RandomForest.growRandomForest(attrs,samples, ((rowrange[rank].ub()-
+                rowrange[rank].lb())+1), n, m);
         long treestart = System.currentTimeMillis();
-        RandomForestCluster< String > forest= RandomForestCluster.growRandomForest(attrs,samples, (numoftrees/size), n, m);
-        long treeend = System.currentTimeMillis();
-        testcount=0;
-        long teststart = System.currentTimeMillis();
-       for(int j=0;j<testsamples.size();j++)
-            {
-               for(int i=0;i<forest.trees.size();i++)
-               {
-               DecisionTree<String> treeresult= (DecisionTree<String>) forest.trees.get(i);
-               results.add((String) treeresult.decide(testsamples.get(j).choices));
-               }
-           result.put(j,results);
-           results = new ArrayList<String>();
-            }
-       long testend = System.currentTimeMillis();
-          //System.out.println("Decision by "+rank+" which is "+ result);
+        //gathers the small forest from all cluster systems.
+        testsamples=testsamples.subList(testrange[rank].lb(), testrange[rank].ub()+1);
         if(rank!=0) 
         {
-            gather.fill(result);
-            world.send(0, gather);
-            System.out.println("Decision sent from "+rank+" to process 0");
-            }
+            gatherforest.fill(clusterobject);
+            world.send(0, gatherforest);
+            System.out.println("forest subset sent from "+rank+" to process 0");
+        }
         else
         {
-            decisionbyvote.putAll(result);
+            Forest.add(clusterobject);
             for(int i = 1;i < size; i++)
             {
-                world.receive(i, gather);
-                System.out.println("Decision recieved from "+i);
-                decisionbyvote=RandomForestCluster.merge(decisionbyvote, (Map<Integer, List<String>>)gather.get(0));
+                world.receive(i, gatherforest);
+                Forest.add((RandomForest<String>) gatherforest.get(0));
+            }
+        }
+        //gathers the small forest from all cluster systems.
+        if(rank == 0) 
+        {
+            for(int i=1; i< size; i++)
+            {
+                gatherrandomforest.fill(Forest);
+                world.send(i, gatherrandomforest);
+            }
+        }
+        else
+        {
+            world.receive(0, gatherrandomforest);
+            Forest=gatherrandomforest.get(0);
+
+        }
+        testcount = 0;
+        long treeend = System.currentTimeMillis();
+        long teststart = System.currentTimeMillis();
+        for(int i = 0;i < Forest.size(); i++){
+            if(i!=rank)
+            clusterobject.getTrees().addAll(Forest.get(i).getTrees());
+        }
+        System.out.println("Number of trees in each system "+clusterobject.getTrees().size());
+        int correct_results = clusterobject.numberOfCorrectDecisions(testsamples);
+        long testend = System.currentTimeMillis();
+        //System.out.println("Decision by "+rank+" which is "+ result);
+        if(rank!=0) 
+        {
+            counter.item=correct_results;
+            world.send(0, counter);
+            System.out.println("Decision sent from "+rank+" to process 0");
+        }
+        else
+        {
+
+            for(int i = 1;i < size; i++)
+            {
+                world.receive(i, counter);
+                correct_results += counter.item;
             }
             //System.out.println(decisionbyvote);
-            System.out.println(" The Number of correct results :"+ 
-                    RandomForestCluster.numberOfCorrectDecisionsCluster(testsamples, decisionbyvote)+" out of "+testsamples.size());
-            }
+        }
         System.out.println("Tree construction time of rank "+rank+" "+(treeend-treestart));
         System.out.println("Test time of rank "+rank+" "+(testend-teststart));
-       
-        }
+        System.out.println("Correct Results "+rank+" "+correct_results);
+
+    }
     private static void usage()
     {
-    System.err.println ("Usage: java  -Dpj.np=<p> <size> <n_sample_records> <m_attributes> <File>");
-    System.err.println ("<p> = #number of processors");
-    System.err.println ("<size> = #number of trees in the forest( Multiple of P )");
-    System.err.println ("<n_sample_records> = # of sample records");
-    System.err.println ("<m_attributes> = # of attributes");
-    System.err.println ("<File> = Input file name");
-    System.exit (1);
+        System.err.println ("Usage: java  -Dpj.np=<p> <size> <n_sample_records> <m_attributes> <File>");
+        System.err.println ("<p> = #number of processors");
+        System.err.println ("<size> = #number of trees in the forest");
+        System.err.println ("<n_sample_records> = # of sample records");
+        System.err.println ("<m_attributes> = # of attributes");
+        System.err.println ("<File> = Input file name");
+        System.exit (1);
     }
-        
+
 }

@@ -3,7 +3,8 @@ import java.util.Map;
 /**
  * A wrapper for the (choices, decision) pair that constitutes a sample.
  */
-public class Sample<D> {
+@SuppressWarnings("serial")
+public class Sample<D> implements java.io.Serializable {
 
     public final Map<String,String> choices;
     public final D decision;

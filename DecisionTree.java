@@ -6,7 +6,8 @@ import java.util.Map;
  *
  * Can either be a Decision or a Tree.
  */
-public abstract class DecisionTree<D> {
+@SuppressWarnings("serial")
+public abstract class DecisionTree<D> implements java.io.Serializable {
 
     /**
      * Grow a normal decision tree.
@@ -187,14 +188,9 @@ public abstract class DecisionTree<D> {
 		}
 
 		public boolean test(Sample<D> sample) {
-			return sample.choices.get(getAttr()).contains(getVal());
+			return sample.choices.get(getAttr()).equals(getVal());
 		}
-
-		
-
-		
-
-    }
+		}
 
     /**
      * The key function for subclasses to implement to be decision trees.
@@ -209,6 +205,7 @@ public abstract class DecisionTree<D> {
 /**
  * Represents a decision (leaf) node of a DecisionTree.
  */
+@SuppressWarnings("serial")
 class Decision<D> extends DecisionTree<D> {
 
     public D decision;
@@ -235,6 +232,7 @@ class Decision<D> extends DecisionTree<D> {
  * Represents a non-decision node of a decision tree.
  * Has an attribute, with a child subtree for each of the attribute's values.
  */
+@SuppressWarnings("serial")
 class Tree<D> extends DecisionTree<D> {
 
     public String attr;

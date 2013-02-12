@@ -13,7 +13,8 @@ import edu.rit.pj.reduction.SharedInteger;
  * A RandomForest is simply a collection of DecisionTrees.
  * These trees are grown in a certain random way, and they vote on decisions.
  */
-public class RandomForestCluster<D> {
+@SuppressWarnings("serial")
+public class RandomForestCluster<D> implements java.io.Serializable{
     
     static List<String> results;
     static Map<Integer, List<String>> decisionbyvotes=null;
