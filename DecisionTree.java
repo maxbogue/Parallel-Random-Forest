@@ -177,7 +177,7 @@ public abstract class DecisionTree<D> {
          * @return          Whether the sample has value for attr.
          */
         public boolean test(Sample<D> sample) {
-            return sample.choices.get(attr) == value;
+            return sample.choices.get(attr).equals(value);
         }
 
     }
