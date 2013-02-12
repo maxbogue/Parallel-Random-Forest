@@ -5,65 +5,33 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 
-public class RandomForestMain
-{
-    static int size;
-    static int n;
-    static int m;
+public class RandomForestMain {
 
-    static String dataFile;
-    public static void main(String[] args) throws Exception
-    {
-        size = Integer.parseInt(args[0]);
-        n = Integer.parseInt(args[1]);
-        m = Integer.parseInt(args[2]);
+    public static void main(String[] args) throws Exception {
 
-        dataFile = args[3];
-        BufferedReader in = new BufferedReader(new FileReader(dataFile));
+        // Parse arguments.
+        int size = Integer.parseInt(args[0]);
+        int n = Integer.parseInt(args[1]);
+        int m = Integer.parseInt(args[2]);
+        String dataFile = args[3];
 
-        List<Sample<String>> samples = new ArrayList<Sample<String>>();
-        Map<String, List<String>> attributes =
-            new HashMap<String, List<String>>();
+        // Read samples and attrs from the file.
+        Map<String,List<String>> attrs = new HashMap<String,List<String>>();
+        List<Sample<String>> samples = RandomForestInput.readData(dataFile, attrs);
 
-        String line;
-        String[] lineSplit;
-        String decision;
-        Map<String, String> currChoices;
-        while((line = in.readLine()) != null)
-        {
-            lineSplit = line.split(",");
-            decision = lineSplit[0];
-            currChoices = new HashMap<String, String>();
-
-            for(int i = 1; i < lineSplit.length; i++)
-            {
-                currChoices.put(String.valueOf(i), lineSplit[i]);
-                samples.add(new Sample<String>(currChoices, decision)); 
-                
-                if(attributes.get(String.valueOf(i)) == null)
-                {
-                    attributes.put(String.valueOf(i), new ArrayList<String>());
-                    attributes.get(String.valueOf(i)).add(lineSplit[i]);
-                }
-                else
-                {
-                    if(! attributes.get(String.valueOf(i))
-                       .contains(lineSplit[i]))
-                    {
-                        attributes.get(String.valueOf(i)).add(lineSplit[i]);
-                    }
-                }
-            }
-        }
-        
-
-        /*RandomForest<String> forest = */
-
+        // Start timing.
         long startTime = System.currentTimeMillis();
+
+        // Grow the forest.
         RandomForest<String> forest = RandomForest
-            .<String>growRandomForest(attributes, samples, size, n, m);
+            .<String>growRandomForest(attrs, samples, size, n, m);
+
+        // Stop timing.
         long endTime = System.currentTimeMillis();
+
+        // Print results.
         System.out.println((endTime - startTime) + " millis");
                                                                            
     }
+
 }

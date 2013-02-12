@@ -48,19 +48,15 @@ public class RandomForest<D> {
     }
     
     /** 
-     * get the number of correct decisions in a list of tests performed 
-     * against the forest
+     * Run a list of samples against this forest.
      *
-     * @param tests     The test samples that will be used to 
-     *                  evaluate the forest.
+     * @param samples   The samples to run.
+     * @return          The number of correct decisions by this forest.
      */
-    public int numberOfCorrectDecisions(List<Sample<D>> tests)
-    {
+    public int numberOfCorrectDecisions(List<Sample<D>> samples) {
         int correct = 0;
-        for(int i = 0; i < tests.size(); i++)
-        {
-            if(tests.get(i).decision.equals(decide(tests.get(i))))
-            {
+        for (Sample<D> sample : samples) {
+            if (sample.decision.equals(decide(sample))) {
                 correct++;
             }
         }
@@ -68,17 +64,15 @@ public class RandomForest<D> {
     }
 
     /** 
-     * gets the decision that the forest will make given a Sample's attributes
+     * Gets the mode decision of the trees in this forest on the sample.
      *
-     * @param sample    The sample who's attributes will be used to get
-     *                  a decision from the forest
-     *
+     * @param sample    The sample whose attributes will be used to get
+     *                  a decision from the forest.
+     * @return          The decision of this forest on the sample.
      */
-    public D decide(Sample<D> sample)
-    {
+    public D decide(Sample<D> sample) {
         Counter<D> decisions = new Counter<D>();
-        for(DecisionTree<D> tree : trees)
-        {
+        for (DecisionTree<D> tree : trees) {
             decisions.add(tree.decide(sample.choices));
         }  
         return decisions.mode();
