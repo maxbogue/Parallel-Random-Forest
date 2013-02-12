@@ -1,6 +1,5 @@
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,7 +10,7 @@ import edu.rit.pj.Comm;
 
 /**
  * This class contains the main function that reads 
- * the sample from the file and generate a random forest in cluster environement.
+ * the sample from the file and generate a random forest in cluster environment.
  * @author Roshan
  *
  */
@@ -30,10 +29,10 @@ public class RandomForestClusterMain {
      * @param m         The best attribute at each node in a tree will be chosen
      *                  from m attributes selected at random without replacement.
      * @param file      The file that contains the dataset, samples to learn and test.
-     * @throws IOException
+     * @throws Exception 
      */
     @SuppressWarnings("unchecked")
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws Exception {
         if(args.length!=4)usage();
         Comm.init(args);
         // Getting the Comm object containing the cluster.
@@ -119,8 +118,11 @@ public class RandomForestClusterMain {
             System.err.print("File Not found");
             System.exit(1);
             }
-        RandomForestCluster< String > forest= RandomForestCluster.growRandomForest(attrs,samples, numoftrees, n, m);
+        long treestart = System.currentTimeMillis();
+        RandomForestCluster< String > forest= RandomForestCluster.growRandomForest(attrs,samples, (numoftrees/size), n, m);
+        long treeend = System.currentTimeMillis();
         testcount=0;
+        long teststart = System.currentTimeMillis();
        for(int j=0;j<testsamples.size();j++)
             {
                for(int i=0;i<forest.trees.size();i++)
@@ -131,11 +133,13 @@ public class RandomForestClusterMain {
            result.put(j,results);
            results = new ArrayList<String>();
             }
+       long testend = System.currentTimeMillis();
           //System.out.println("Decision by "+rank+" which is "+ result);
         if(rank!=0) 
         {
             gather.fill(result);
             world.send(0, gather);
+            System.out.println("Decision sent from "+rank+" to process 0");
             }
         else
         {
@@ -143,12 +147,16 @@ public class RandomForestClusterMain {
             for(int i = 1;i < size; i++)
             {
                 world.receive(i, gather);
-                decisionbyvote=RandomForestCluster.merge(decisionbyvote, (Map<Integer, List<String>>)gather.get(0), results);
+                System.out.println("Decision recieved from "+i);
+                decisionbyvote=RandomForestCluster.merge(decisionbyvote, (Map<Integer, List<String>>)gather.get(0));
             }
             //System.out.println(decisionbyvote);
             System.out.println(" The Number of correct results :"+ 
                     RandomForestCluster.numberOfCorrectDecisionsCluster(testsamples, decisionbyvote)+" out of "+testsamples.size());
             }
+        System.out.println("Tree construction time of rank "+rank+" "+(treeend-treestart));
+        System.out.println("Test time of rank "+rank+" "+(testend-teststart));
+       
         }
     private static void usage()
     {

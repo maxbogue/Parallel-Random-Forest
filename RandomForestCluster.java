@@ -1,7 +1,12 @@
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import edu.rit.pj.IntegerForLoop;
+import edu.rit.pj.ParallelRegion;
+import edu.rit.pj.ParallelTeam;
+import edu.rit.pj.reduction.SharedInteger;
 
 
 /**
@@ -10,6 +15,8 @@ import java.util.Map;
  */
 public class RandomForestCluster<D> {
     
+    static List<String> results;
+    static Map<Integer, List<String>> decisionbyvotes=null;
     /**
      * Grows a random forest from a list of samples.
      *
@@ -33,8 +40,9 @@ public class RandomForestCluster<D> {
             int m)
     {
         List<DecisionTree<D>> trees = new ArrayList<DecisionTree<D>>(size);
-        for (int i = 0; i < size; i++) {
-            List<Sample<D>> sampleChoices = ListUtils.choices(samples, n);
+        for (int i = 0; i < size; i++) 
+        {
+            List< Sample< D > > sampleChoices = ListUtils.choices(samples, n);
             trees.add(DecisionTree.growDecisionTree(attrs, sampleChoices, m));
         }
         return new RandomForestCluster<D>(trees);
@@ -56,20 +64,38 @@ public class RandomForestCluster<D> {
      * This is used to merge all the decisions of a single
      * sample from the cluster systems.
      * @param _gather
+     * @throws Exception 
      * @returns decisionbyvote The merged Map of testsample id and its respective decisions from
      * cluster systems 
      */
-    public static Map<Integer, List<String>> merge(Map<Integer, List<String>> decisionbyvote, 
-            Map<Integer, List<String>> _gather, List<String> results)
+    public static Map<Integer, List<String>> merge(final Map<Integer, List<String>> decisionbyvote, 
+            final Map<Integer, List<String>> _gather) throws Exception
     {
-        for(int i = 0;i < _gather.size(); i++)
+        //holds the decision of individual cluster system.
+        results = new ArrayList<String>();
+        //holds the decision got from all the cluster systems.
+        decisionbyvotes = new HashMap<Integer, List<String>>();
+        new ParallelTeam().execute (new ParallelRegion()
         {
-            results=decisionbyvote.get(i);
-            results.addAll(_gather.get(i));
-            decisionbyvote.put(i, results);
-            
-        }
-        return decisionbyvote;
+            public void run() throws Exception
+            {
+                execute(0, _gather.size() - 1, new IntegerForLoop()
+                {
+                    public void run(int first, int last)
+                    {
+                        for(int i = first;i <= last; i++)
+                        {
+                            results=decisionbyvote.get(i);
+                            results.addAll(_gather.get(i));
+                            decisionbyvotes.put(i, results);
+                            
+                        }
+                        
+                    }
+                    });
+            }
+        });
+        return decisionbyvotes;
     }
     
     /**
@@ -77,19 +103,38 @@ public class RandomForestCluster<D> {
      * @param _testsamples  The samples that are used for testing the decision tree.
      * @param _decisions    The final decisions of each sample gathered by rank zero process
      * @return counter_value Contains the number of correct matches.
+     * @throws Exception 
      */
-    public static int numberOfCorrectDecisionsCluster( List<Sample< String >> _testsamples, 
-            Map< Integer, List< String >> _decisions)
+    public static int numberOfCorrectDecisionsCluster( final List<Sample< String >> _testsamples, 
+            final Map< Integer, List< String >> _decisions) throws Exception
     {
-        int counter_value=0;
-        for(int i = 0; i < _testsamples.size(); i++)
+        final SharedInteger counter = new SharedInteger(0);
+        new ParallelTeam().execute (new ParallelRegion()
         {
-            if(_testsamples.get(i).decision.equals(ListUtils.mode(_decisions.get(i))))
+            public void run() throws Exception
             {
-                counter_value++;
+                execute(0, _testsamples.size() - 1, new IntegerForLoop()
+                {
+                    int counter_value=0;
+                    public void run(int first, int last)
+                    {
+                        for(int i = first;i <= last; i++)
+                        {
+                            if(_testsamples.get(i).decision.equals(ListUtils.mode(_decisions.get(i))))
+                            {
+                                counter_value++;
+                            }
+                            
+                        }
+                        
+                    }
+                    public void finish()
+                    {
+                        counter.addAndGet(counter_value);
+                    }
+                    });
             }
+        });
+        return counter.intValue();
         }
-        return counter_value;
-        
-    }
     }
