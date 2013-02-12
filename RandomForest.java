@@ -47,22 +47,6 @@ public class RandomForest<D> {
     private RandomForest(List<DecisionTree<D>> trees) {
         this.trees = trees;
     }
-    
-    /** 
-     * Run a list of samples against this forest.
-     *
-     * @param samples   The samples to run.
-     * @return          The number of correct decisions by this forest.
-     */
-    public int numberOfCorrectDecisions(List<Sample<D>> samples) {
-        int correct = 0;
-        for (Sample<D> sample : samples) {
-            if (sample.decision.equals(decide(sample))) {
-                correct++;
-            }
-        }
-        return correct;
-    }
 
     /** 
      * Gets the mode decision of the trees in this forest on the sample.
@@ -75,8 +59,24 @@ public class RandomForest<D> {
         Counter<D> decisions = new Counter<D>();
         for (DecisionTree<D> tree : trees) {
             decisions.add(tree.decide(sample.choices));
-        }  
+        }
         return decisions.mode();
+    }
+
+    /**
+     * Run a list of samples against this forest.
+     *
+     * @param samples   The test samples to evaluate the forest with.
+     * @return          The number of correct decisions by this forest.
+     */
+    public int test(List<Sample<D>> samples) {
+        int correct = 0;
+        for (Sample<D> sample : samples) {
+            if (sample.decision.equals(decide(sample))) {
+                correct++;
+            }
+        }
+        return correct;
     }
 
     /**
@@ -92,20 +92,40 @@ public class RandomForest<D> {
 
         // Read samples and attrs from the file.
         Map<String,List<String>> attrs = new HashMap<String,List<String>>();
-        List<Sample<String>> samples = RandomForestInput.readData(dataFile, attrs);
+        List<Sample<String>> data = RandomForestInput.readData(dataFile, attrs);
+
+        // Split into training and testing data.
+        int numTraining = (int)(data.size() * 0.75);
+        List<Sample<String>> trainingData = data.subList(0, numTraining);
+        List<Sample<String>> testData = data.subList(numTraining, data.size());
 
         // Start timing.
-        long startTime = System.currentTimeMillis();
+        long t1 = System.currentTimeMillis();
 
         // Grow the forest.
         RandomForest<String> forest = RandomForest
-            .<String>growRandomForest(attrs, samples, size, n, m);
+            .<String>growRandomForest(attrs, trainingData, size, n, m);
 
         // Stop timing.
-        long endTime = System.currentTimeMillis();
+        long t2 = System.currentTimeMillis();
 
         // Print results.
-        System.out.println((endTime - startTime) + " millis");
+        System.out.println("Forest construction took " + (t2 - t1) + " ms");
+
+        // Start timing.
+        long t3 = System.currentTimeMillis();
+
+        // Test the forest.
+        int correct = forest.test(testData);
+
+        // Stop timing.
+        long t4 = System.currentTimeMillis();
+
+        // Print results.
+        double percent = 100.0 * correct / testData.size();
+        System.out.printf("%.2f%% (%d/%d) tests passed.\n",
+                percent, correct, testData.size());
+        System.out.println("Forest testing took " + (t4 - t3) + " ms");
 
     }
 
