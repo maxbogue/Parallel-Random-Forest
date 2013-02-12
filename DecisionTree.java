@@ -1,11 +1,8 @@
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 /**
- * Representa a decision tree with a decision of type D.
+ * Represents a decision tree with a decision of type D.
  *
  * Can either be a Decision or a Tree.
  */
@@ -46,7 +43,7 @@ public abstract class DecisionTree<D> {
         // See how many unique decisions are left in the set of samples.
         Counter<D> decisions = new Counter<D>();
         for (Sample<D> sample : samples) {
-            decisions.add(sample.decision);
+        	decisions.add(sample.decision);
         }
         // If only one, then decide on it.
         if (decisions.size() == 1) {
@@ -78,7 +75,8 @@ public abstract class DecisionTree<D> {
         // For each value of the selected "best" attribute
         for (String v : selectedAttrs.get(best)) {
             // Pick out the samples with a matching value for that attribute.
-            List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(best, v));
+        	
+      List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(best, v));
             // If there aren't any..,
             if (vSamples.isEmpty()) {
                 // we have to make due with the mode of the samples we had.
@@ -176,9 +174,25 @@ public abstract class DecisionTree<D> {
          * @param sample    A sample to test.
          * @return          Whether the sample has value for attr.
          */
-        public boolean test(Sample<D> sample) {
-            return sample.choices.get(attr) == value;
-        }
+       
+
+		public String getAttr() {
+			// TODO Auto-generated method stub
+			return this.attr;
+		}
+
+		public String getVal() {
+			// TODO Auto-generated method stub
+			return this.value;
+		}
+
+		public boolean test(Sample<D> sample) {
+			return sample.choices.get(getAttr()).contains(getVal());
+		}
+
+		
+
+		
 
     }
 
