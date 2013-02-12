@@ -26,7 +26,7 @@ public class RandomForest<D> {
             List<Sample<D>> samples,
             int size,
             int n,
-            int m)
+            int m) throws Exception
     {
         List<DecisionTree<D>> trees = new ArrayList<DecisionTree<D>>(size);
         for (int i = 0; i < size; i++) {
@@ -37,14 +37,12 @@ public class RandomForest<D> {
     }
 
     /** The trees in this forest. */
-    private List<DecisionTree<D>> trees;
+    protected List<DecisionTree<D>> trees;
 
     /**
-     * Private constructor, for some reason.
-     *
      * @param trees     The trees in this forest.
      */
-    private RandomForest(List<DecisionTree<D>> trees) {
+    protected RandomForest(List<DecisionTree<D>> trees) {
         this.trees = trees;
     }
 
@@ -69,7 +67,7 @@ public class RandomForest<D> {
      * @param samples   The test samples to evaluate the forest with.
      * @return          The number of correct decisions by this forest.
      */
-    public int test(List<Sample<D>> samples) {
+    public int test(List<Sample<D>> samples) throws Exception {
         int correct = 0;
         for (Sample<D> sample : samples) {
             if (sample.decision.equals(decide(sample))) {
