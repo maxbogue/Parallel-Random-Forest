@@ -107,4 +107,61 @@ public class RandomForestSmp<D> extends RandomForest<D> {
         return correct.get();
     }
 
+    /**
+     * Parse input data, and time the construction of a random forest.
+     */
+    public static void main(String[] args) throws Exception {
+
+        // Parse arguments.
+        int size = Integer.parseInt(args[0]);
+        int n = Integer.parseInt(args[1]);
+        int m = Integer.parseInt(args[2]);
+        String dataFile = args[3];
+        double split;
+        if (args.length > 4) {
+            split = Double.parseDouble(args[4]) / 100.0;
+        } else {
+            split = 0.75;
+        }
+
+        // Read samples and attrs from the file.
+        Map<String,List<String>> attrs = new HashMap<String,List<String>>();
+        List<Sample<String>> data = RandomForestInput.readData(dataFile, attrs);
+        data = ListUtils.shuffle(data);
+
+        // Split into training and testing data.
+        int numTraining = (int)(data.size() * split);
+        List<Sample<String>> trainingData = data.subList(0, numTraining);
+        List<Sample<String>> testData = data.subList(numTraining, data.size());
+
+        // Start timing.
+        long t1 = System.currentTimeMillis();
+
+        // Grow the forest.
+        RandomForest<String> forest = RandomForest
+            .<String>growRandomForest(attrs, trainingData, size, n, m);
+
+        // Stop timing.
+        long t2 = System.currentTimeMillis();
+
+        // Start timing.
+        long t3 = System.currentTimeMillis();
+
+        // Test the forest.
+        int correct = forest.test(testData);
+
+        // Stop timing.
+        long t4 = System.currentTimeMillis();
+
+        // Print results.
+        System.out.println(trainingData.size() + " samples used to train the forest.");
+        System.out.println(testData.size() + " samples used to test the forest.");
+        double percent = 100.0 * correct / testData.size();
+        System.out.printf("%.2f%% (%d/%d) tests passed.\n",
+                percent, correct, testData.size());
+        System.out.println("Forest construction time: " + (t2 - t1) + " ms");
+        System.out.println("Forest testing time: " + (t4 - t3) + " ms");
+
+    }
+
 }
