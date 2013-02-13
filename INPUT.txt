@@ -1,25 +1,25 @@
 22
-cap-shape                                                 
-cap-surface              
-cap-color               
-bruises?               
-odor                     
-gill-attachment         
-gill-spacing             
-gill-size                
-gill-color                                                                                  
-stalk-shape            
-stalk-root                                            
+cap-shape
+cap-surface
+cap-color
+bruises?
+odor
+gill-attachment
+gill-spacing
+gill-size
+gill-color
+stalk-shape
+stalk-root
 stalk-surface-above-ring
-stalk-surface-below-ring 
-stalk-color-above-ring       
-stalk-color-below-ring       
-veil-type                
-veil-color               
-ring-number            
-ring-type                
-spore-print-color                                         
-population                                                
+stalk-surface-below-ring
+stalk-color-above-ring
+stalk-color-below-ring
+veil-type
+veil-color
+ring-number
+ring-type
+spore-print-color
+population
 habitat
 6
 b c x f k s
@@ -35,7 +35,7 @@ a l c y f m n p s
 a d f n
 3
 c w d
-2 
+2
 b n
 12
 k n b h g r o p u e w y
@@ -8189,5 +8189,5 @@ e k s n f n a c b y e ? s s o o p o o p b c l
 e x s n f n a c b y e ? s s o o p n o p b v l
 e f s n f n a c b n e ? s s o o p o o p b c l
 p k y n f y f c n b t ? s k w w p w o e w v l
-e x s n f n a c b y e ? s s o o p o o p o c l                  
-                                  
+e x s n f n a c b y e ? s s o o p o o p o c l
+

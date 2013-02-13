@@ -13,16 +13,12 @@ class ListUtils {
     private ListUtils() {}
 
     public static <T> List<T> filter(List<T> ls, Predicate<T> p) {
-    	List<T> result = new ArrayList<T>();
-    	
+        List<T> result = new ArrayList<T>();
         for (T e : ls) {
-        	
             if (p.test(e)) {
-            	
                 result.add(e);
             }
         }
-        
         return result;
     }
 
@@ -117,10 +113,7 @@ class ListUtils {
 }
 
 /** A predicate to use with filtering. */
-interface Predicate<T> { public boolean test(T e); 
-public String getAttr();
-public String getVal();
-}
+interface Predicate<T> { public boolean test(T e); }
 
 /** A transform for use in mapping a list. */
 interface Transform<X,Y> { public Y transform(X x); }

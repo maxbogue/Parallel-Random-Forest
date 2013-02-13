@@ -44,7 +44,7 @@ public abstract class DecisionTree<D> implements java.io.Serializable {
         // See how many unique decisions are left in the set of samples.
         Counter<D> decisions = new Counter<D>();
         for (Sample<D> sample : samples) {
-        	decisions.add(sample.decision);
+            decisions.add(sample.decision);
         }
         // If only one, then decide on it.
         if (decisions.size() == 1) {
@@ -76,8 +76,7 @@ public abstract class DecisionTree<D> implements java.io.Serializable {
         // For each value of the selected "best" attribute
         for (String v : selectedAttrs.get(best)) {
             // Pick out the samples with a matching value for that attribute.
-        	
-      List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(best, v));
+            List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(best, v));
             // If there aren't any..,
             if (vSamples.isEmpty()) {
                 // we have to make due with the mode of the samples we had.

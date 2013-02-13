@@ -9,7 +9,7 @@ import java.util.Map;
  */
 @SuppressWarnings("serial")
 public class RandomForest<D> implements java.io.Serializable {
-    
+
     /**
      * Grows a random forest from a list of samples.
      *
@@ -38,7 +38,7 @@ public class RandomForest<D> implements java.io.Serializable {
     }
 
     /** The trees in this forest. */
-    protected List<DecisionTree<D>> trees;
+    public List<DecisionTree<D>> trees;
 
     /**
      * @param trees     The trees in this forest.
@@ -47,7 +47,7 @@ public class RandomForest<D> implements java.io.Serializable {
         this.trees = trees;
     }
 
-    /** 
+    /**
      * Gets the mode decision of the trees in this forest on the sample.
      *
      * @param sample    The sample whose attributes will be used to get
@@ -130,14 +130,6 @@ public class RandomForest<D> implements java.io.Serializable {
         System.out.println("Forest construction time: " + (t2 - t1) + " ms");
         System.out.println("Forest testing time: " + (t3 - t2) + " ms");
 
-    }
-    
-    /**
-     * This returns the trees for combining.
-     * @return
-     */
-    public List<DecisionTree<D>> getTrees(){
-        return this.trees;
     }
 
 }

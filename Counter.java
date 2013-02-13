@@ -1,6 +1,5 @@
 import java.util.*;
 
-@SuppressWarnings("serial")
 class Counter<K> extends HashMap<K,Integer> {
 
     public Integer get(Object key) {
