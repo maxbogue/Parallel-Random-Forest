@@ -12,8 +12,9 @@ import edu.rit.pj.reduction.SharedInteger;
 /**
  * A RandomForest is simply a collection of DecisionTrees.
  * These trees are grown in a certain random way, and they vote on decisions.
+ * This class grows and runs the trees in multiple threads.
  */
-public class RandomForestSmp<D> {
+public class RandomForestSmp<D> extends RandomForest<D> {
     
     /**
      * Grows a random forest from a list of samples.
@@ -28,154 +29,82 @@ public class RandomForestSmp<D> {
      * @return          A new RandomForest.
      */
     public static <D> RandomForestSmp<D> growRandomForest(
-            Map<String,List<String>> attrs,
-            List<Sample<D>> samples,
-            int size,
-            int n,
-            int m) throws Exception
+            final Map<String,List<String>> attrs,
+            final List<Sample<D>> samples,
+            final int size,
+            final int n,
+            final int m) throws Exception
     {
-        final Map<String, List<String>> currAttrs = attrs;
-        final List<Sample<D>> currSamples = samples;
-        final int currSize = size;
-        final int currN = n;
-        final int currM = m;
+        // The trees for this random forest.
+        final List<DecisionTree<D>> trees = new ArrayList<DecisionTree<D>>(size);
+        for (int i = 0; i < size; i++) {
+            trees.add(null);
+        }
 
-        final SharedObjectArray<DecisionTree<D>> trees
-            = new SharedObjectArray<DecisionTree<D>>(size);
-        
-        new ParallelTeam().execute (new ParallelRegion()
-        {
-            public void run() throws Exception
-            {
-                execute(0, currSize - 1, new IntegerForLoop()
-                {
-                    ArrayList<DecisionTree<D>> decisions;// = new LinkedList<DecisionTree<D>>();
-                    int first;
-                    public IntegerSchedule schedule()
-                    {
-                        return IntegerSchedule.runtime();
-                    }
-
-                    public void run(int first, int last)
-                    {
-                        decisions = new ArrayList<DecisionTree<D>>(last - first);
-
-                        this.first = first;
-                        for(int i = first; i <= last; i++)
-                        {
-                            List<Sample<D>> sampleChoices =
-                                ListUtils.choices(currSamples, currN);
-                            decisions.add(DecisionTree.growDecisionTree
-                                          (currAttrs, sampleChoices, currM));
+        // Construct the trees in parallel.
+        new ParallelTeam().execute (new ParallelRegion() {
+            public void run() throws Exception {
+                execute(0, size - 1, new IntegerForLoop() {
+                    public void run(int first, int last) {
+                        for (int i = first; i <= last; i++) {
+                            // Get the subset of samples to train this tree on.
+                            List<Sample<D>> sampleChoices = ListUtils.choices(samples, n);
+                            // Train and save a DecisionTree.
+                            trees.set(i, DecisionTree.growDecisionTree(
+                                    attrs, sampleChoices, m));
                         }
-                        
-                    }
-
-                    public void finish()
-                    {
-                        int i = first;
-                        if(decisions != null)
-                        {
-                            for(DecisionTree<D> decision : decisions)
-                            {
-                                trees.set(i, decision);
-                                i++;
-                            }
-                        }
-                        //reduce trees
                     }
                 });
             }
         });
-        
-        System.out.println(trees.length());
 
-        List<DecisionTree<D>> treesList = new ArrayList<DecisionTree<D>>(size);
-
-        for(int i = 0; i < trees.length() - 1; i++)
-        {
-            treesList.add(trees.get(i));
-        }
-        return new RandomForestSmp<D>(treesList);
+        // Construct and return the actual RandomForest object.
+        return new RandomForestSmp<D>(trees);
     }
-
-    /** The trees in this forest. */
-    private List<DecisionTree<D>> trees;
 
     /**
-     * Private constructor, for some reason.
-     *
      * @param trees     The trees in this forest.
      */
-    private RandomForestSmp(List<DecisionTree<D>> trees) {
-        this.trees = trees;
+    protected RandomForestSmp(List<DecisionTree<D>> trees) {
+        super(trees);
     }
 
-    
     /** 
-     * get the number of correct decisions in a list of tests performed 
-     * against the forest
+     * Run a list of samples against this forest.
      *
-     * @param tests     The test samples that will be used to 
-     *                  evaluate the forest.
+     * @param samples   The test samples to evaluate the forest with.
+     * @return          The number of correct decisions by this forest.
      */
-    
-    public int numberOfCorrectDecisions(List<Sample<D>> tests) throws Exception
-    {
+    public int test(final List<Sample<D>> samples) throws Exception {
+
+        // Aggregate variable for the number of correct cases.
         final SharedInteger correct = new SharedInteger(0);
-        final List<Sample<D>> currTests = tests;
 
-        new ParallelTeam().execute (new ParallelRegion()
-        {
-            public void run() throws Exception
-            {
-                execute(0, currTests.size() - 1, new IntegerForLoop()
-                {
-                    int currCorrect = 0;
-                    public IntegerSchedule schedule()
-                    {
-                        return IntegerSchedule.runtime();
-                    }
+        // Test the samples in parallel and count the number that were correct.
+        new ParallelTeam().execute(new ParallelRegion() {
+            public void run() throws Exception {
+                execute(0, samples.size() - 1, new IntegerForLoop() {
 
-                    public void run(int first, int last)
-                    {
-                        for(int i = first; i <= last; i++)
-                        {
-                            if(currTests.get(i).decision
-                               .equals(decide(currTests.get(i))))
-                            {
-                                currCorrect++;
+                    int tCorrect = 0;
+
+                    public void run(int first, int last) {
+                        for (Sample<D> sample : samples.subList(first, last + 1)) {
+                            if (sample.decision.equals(decide(sample))) {
+                                tCorrect++;
                             }
                         }
                     }
 
-                    public void finish()
-                    {
-                        correct.addAndGet(currCorrect);
+                    public void finish() {
+                        correct.addAndGet(tCorrect);
                     }
+
                 });
             }
         });
 
+        // Return the number of correctly decided samples.
         return correct.get();
-
-    }
-
-    /** 
-     * gets the decision that the forest will make given a Sample's attributes
-     *
-     * @param sample    The sample who's attributes will be used to get
-     *                  a decision from the forest
-     *
-     */
-    public D decide(Sample<D> sample)
-    {
-        Counter<D> decisions = new Counter<D>();
-        for(DecisionTree<D> tree : trees)
-        {
-            decisions.add(tree.decide(sample.choices));
-        }  
-        return decisions.mode();
     }
 
 }
