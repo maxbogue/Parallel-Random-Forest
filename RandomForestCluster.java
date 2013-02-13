@@ -110,6 +110,9 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         List<Sample<String>> testDataSlice = testData.subList(
                 testRange.lb(), testRange.ub() + 1);
 
+        // A buffer to receive RandomForests with.
+        ObjectItemBuf<RandomForestCluster<String>> forestBuf = ObjectBuf.buffer();
+
         // Start timing.
         long t1 = System.currentTimeMillis();
 
@@ -121,7 +124,6 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         if (rank != 0) {
             world.send(0, ObjectBuf.buffer(forest));
         } else {
-            ObjectItemBuf<RandomForest<String>> forestBuf = ObjectBuf.buffer();
             for (int i = 1; i < size; i++) {
                 world.receive(i, forestBuf);
                 forest.trees.addAll(forestBuf.item.trees);
@@ -137,7 +139,8 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
                 world.send(i, ObjectBuf.buffer(forest));
             }
         } else {
-            world.receive(0, ObjectBuf.buffer(forest));
+            world.receive(0, forestBuf);
+            forest = forestBuf.item;
         }
 
         System.out.println("Forest size for rank " + rank + ": " + forest.trees.size());
