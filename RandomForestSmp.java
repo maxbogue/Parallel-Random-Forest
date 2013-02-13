@@ -113,9 +113,10 @@ public class RandomForestSmp<D> extends RandomForest<D> {
      * Parse input data, and time the construction of a random forest.
      */
     public static void main(String[] args) throws Exception {
+        Comm.init(args);
+        if (args.length < 4 || args.length > 5) usage();
 
         // Parse arguments.
-        Comm.init(args);
         int size = Integer.parseInt(args[0]);
         int n = Integer.parseInt(args[1]);
         int m = Integer.parseInt(args[2]);

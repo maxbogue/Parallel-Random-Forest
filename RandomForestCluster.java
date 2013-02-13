@@ -6,10 +6,12 @@ import java.util.Map;
 import edu.rit.mp.IntegerBuf;
 import edu.rit.mp.ObjectBuf;
 import edu.rit.mp.buf.IntegerItemBuf;
+import edu.rit.mp.buf.ObjectItemBuf;
 import edu.rit.pj.Comm;
 import edu.rit.pj.IntegerForLoop;
 import edu.rit.pj.ParallelRegion;
 import edu.rit.pj.ParallelTeam;
+import edu.rit.pj.reduction.IntegerOp;
 import edu.rit.pj.reduction.SharedInteger;
 import edu.rit.util.Range;
 
@@ -62,64 +64,30 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
      *                  for each tree.
      * @param m         The best attribute at each node in a tree will be chosen
      *                  from m attributes selected at random without replacement.
-     * @param file      The file that contains the dataset, samples to learn and test.
-     * @throws Exception
+     * @param dataFile  The file that contains the dataset, samples to learn and test.
+     * @param split     The split of training vs test samples. Defaults to 75% training.
      */
     @SuppressWarnings("unchecked")
     public static void main(String args[]) throws Exception {
         Comm.init(args);
         if (args.length < 4 || args.length > 5) usage();
-        // Getting the Comm object containing the cluster.
+
+        // Initialize comm variables.
         Comm world = Comm.world();
-        // The rank of respective cluster system.
         int rank = world.rank();
-        // Contains the total number of cluster systems available in Comm
         int size = world.size();
-        //Random forest cluster object
-        @SuppressWarnings("rawtypes")
-        RandomForest clusterobject;
 
-        // IntegerBuf to get the number of correct decision
-        IntegerItemBuf counter = IntegerBuf.buffer();
-        //To encapsulate the tree subset transfered to the rank 0 System.
-        ObjectBuf< RandomForest< String > > gatherforest;
-        //To encapsulate the randomforest transfered from rank 0 System.
-        ObjectBuf< List<RandomForest< String >> > gatherrandomforest;
-
-        // The number of trees in the random forest.
+        // Parse arguments.
         int forestSize = Integer.parseInt(args[0]);
-        // The number of samples to choose with replacement for each tree.
         int n = Integer.parseInt(args[1]);
-        // The best attribute at each node in a tree will be chosen
-        // from m attributes selected at random without replacement.
         int m = Integer.parseInt(args[2]);
         String dataFile = args[3];
-        // The split of training vs test samples. Defaults to 75% training.
         double split;
         if (args.length > 4) {
             split = Double.parseDouble(args[4]) / 100.0;
         } else {
             split = 0.75;
         }
-
-        //this will split the c value to hold b values form all its column process
-        Range[] rowrange = new Range(0, forestSize - 1).subranges(size);
-        //this will split the c value to hold b values form all its column process
-        Range[] testrange = new Range(0, 99).subranges(size);
-        // The total forest got from all the cluster systems.
-        List<RandomForest<String>> Forest = new ArrayList<RandomForest< String >>();
-        // holds the decision of each choice during learning
-        String decision = null;
-        //holds the list of sample used for learning.
-        List< Sample< String >> samples = new ArrayList< Sample< String > >();
-        //holds the decision got from all the cluster systems.
-        Map<Integer,List<String>> decisionbyvote = new HashMap<Integer, List<String>>();
-        //holds the decision of individual cluster system.
-        List<String> results = new ArrayList<String>();
-        //stores the result of test sample from each cluster
-        Map<Integer,List<String>> result = new HashMap<Integer, List<String>>();
-        gatherforest=ObjectBuf.buffer();
-        gatherrandomforest = ObjectBuf.buffer();
 
         // Read samples and attrs from the file.
         Map<String,List<String>> attrs = new HashMap<String,List<String>>();
@@ -131,70 +99,68 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         List<Sample<String>> trainingData = data.subList(0, numTraining);
         List<Sample<String>> testData = data.subList(numTraining, data.size());
 
-        clusterobject = RandomForest.growRandomForest(attrs,samples, ((rowrange[rank].ub()-
-                rowrange[rank].lb())+1), n, m);
-        long treestart = System.currentTimeMillis();
-        //gathers the small forest from all cluster systems.
-        testData=testData.subList(testrange[rank].lb(), testrange[rank].ub()+1);
-        if(rank!=0)
-        {
-            gatherforest.fill(clusterobject);
-            world.send(0, gatherforest);
-            System.out.println("forest subset sent from "+rank+" to process 0");
-        }
-        else
-        {
-            Forest.add(clusterobject);
-            for(int i = 1;i < size; i++)
-            {
-                world.receive(i, gatherforest);
-                Forest.add((RandomForest<String>) gatherforest.get(0));
-            }
-        }
-        //gathers the small forest from all cluster systems.
-        if(rank == 0)
-        {
-            for(int i=1; i< size; i++)
-            {
-                gatherrandomforest.fill(Forest);
-                world.send(i, gatherrandomforest);
-            }
-        }
-        else
-        {
-            world.receive(0, gatherrandomforest);
-            Forest=gatherrandomforest.get(0);
+        // Ranges for tree construction.
+        Range[] treeRanges = new Range(0, forestSize - 1).subranges(size);
+        Range treeRange = treeRanges[rank];
 
-        }
-        long treeend = System.currentTimeMillis();
-        long teststart = System.currentTimeMillis();
-        for(int i = 0;i < Forest.size(); i++){
-            if(i!=rank)
-            clusterobject.trees.addAll(Forest.get(i).trees);
-        }
-        System.out.println("Number of trees in each system "+clusterobject.trees.size());
-        int correct_results = clusterobject.test(testData);
-        long testend = System.currentTimeMillis();
-        //System.out.println("Decision by "+rank+" which is "+ result);
-        if(rank!=0)
-        {
-            counter.item=correct_results;
-            world.send(0, counter);
-            System.out.println("Decision sent from "+rank+" to process 0");
-        }
-        else
-        {
+        // Ranges for test data splitting.
+        Range[] testRanges = new Range(0, testData.size() - 1).subranges(size);
+        Range testRange = testRanges[rank];
 
-            for(int i = 1;i < size; i++)
-            {
-                world.receive(i, counter);
-                correct_results += counter.item;
+        // Sub-list of test data that this processor will test with.
+        List<Sample<String>> testDataSlice = testData.subList(
+                testRange.lb(), testRange.ub() + 1);
+
+        // Start timing.
+        long t1 = System.currentTimeMillis();
+
+        // Grow the forest for this processor.
+        RandomForest<String> forest = RandomForest.<String>growRandomForest(
+                attrs, trainingData, treeRange.length(), n, m);
+
+        // Merge the small forest from each processor into one.
+        if (rank != 0) {
+            world.send(0, ObjectBuf.buffer(forest));
+        } else {
+            RandomForest<String> inForest = null;
+            ObjectItemBuf<RandomForest<String>> forestBuf = ObjectBuf.buffer(inForest);
+            for (int i = 1; i < size; i++) {
+                world.receive(i, forestBuf);
+                forest.trees.addAll(inForest.trees);
             }
-            //System.out.println(decisionbyvote);
         }
-        System.out.println("Tree construction time of rank "+rank+" "+(treeend-treestart));
-        System.out.println("Test time of rank "+rank+" "+(testend-teststart));
-        System.out.println("Correct Results "+rank+" "+correct_results);
+
+        // Stop timing training, start timing testing.
+        long t2 = System.currentTimeMillis();
+
+        // Send the completed RandomForest to each processor.
+        if (rank == 0) {
+            for (int i = 1; i < size; i++) {
+                world.send(i, ObjectBuf.buffer(forest));
+            }
+        } else {
+            world.receive(0, ObjectBuf.buffer(forest));
+        }
+
+        System.out.println("Forest size for rank " + rank + ": " + forest.trees.size());
+
+        // Test the forest.
+        int correct = forest.test(testDataSlice);
+        IntegerItemBuf correctBuf = IntegerBuf.buffer(correct);
+        world.reduce(0, correctBuf, IntegerOp.SUM);
+        correct = correctBuf.item;
+
+        // Stop timing.
+        long t3 = System.currentTimeMillis();
+
+        // Print results.
+        System.out.println(trainingData.size() + " samples used to train the forest.");
+        System.out.println(testData.size() + " samples used to test the forest.");
+        double percent = 100.0 * correct / testData.size();
+        System.out.printf("%.2f%% (%d/%d) tests passed.\n",
+                percent, correct, testData.size());
+        System.out.println("Forest construction time: " + (t2 - t1) + " ms");
+        System.out.println("Forest testing time: " + (t3 - t2) + " ms");
 
     }
 
