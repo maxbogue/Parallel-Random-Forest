@@ -67,7 +67,6 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
      * @param dataFile  The file that contains the dataset, samples to learn and test.
      * @param split     The split of training vs test samples. Defaults to 75% training.
      */
-    @SuppressWarnings("unchecked")
     public static void main(String args[]) throws Exception {
         Comm.init(args);
         if (args.length < 4 || args.length > 5) usage();
@@ -115,7 +114,7 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         long t1 = System.currentTimeMillis();
 
         // Grow the forest for this processor.
-        RandomForest<String> forest = RandomForest.<String>growRandomForest(
+        RandomForestCluster<String> forest = RandomForestCluster.<String>growRandomForest(
                 attrs, trainingData, treeRange.length(), n, m);
 
         // Merge the small forest from each processor into one.
