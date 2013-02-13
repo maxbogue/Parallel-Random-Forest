@@ -143,8 +143,6 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
             forest = forestBuf.item;
         }
 
-        System.out.println("Forest size for rank " + rank + ": " + forest.trees.size());
-
         // Test the forest.
         int correct = forest.test(testDataSlice);
         IntegerItemBuf correctBuf = IntegerBuf.buffer(correct);
