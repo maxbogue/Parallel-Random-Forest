@@ -10,7 +10,6 @@ import edu.rit.pj.ParallelRegion;
 import edu.rit.pj.ParallelTeam;
 import edu.rit.pj.reduction.SharedObjectArray;
 import edu.rit.pj.reduction.SharedInteger;
-import edu.rit.util.Random;
 
 /**
  * A RandomForest is simply a collection of DecisionTrees.
@@ -121,15 +120,12 @@ public class RandomForestSmp<D> extends RandomForest<D> {
         int n = Integer.parseInt(args[1]);
         int m = Integer.parseInt(args[2]);
         String dataFile = args[3];
-        long seed = Long.parseLong(args[4]);
         double split;
-        if (args.length > 5) {
-            split = Double.parseDouble(args[5]) / 100.0;
+        if (args.length > 4) {
+            split = Double.parseDouble(args[4]) / 100.0;
         } else {
             split = 0.75;
         }
-
-        Random rand = Random.getInstance(seed);
 
         // Read samples and attrs from the file.
         Map<String,List<String>> attrs = new HashMap<String,List<String>>();
