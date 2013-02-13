@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +92,7 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         // Read samples and attrs from the file.
         Map<String,List<String>> attrs = new HashMap<String,List<String>>();
         List<Sample<String>> data = RandomForestInput.readData(dataFile, attrs);
-        data = ListUtils.shuffle(data);
+        //data = ListUtils.shuffle(data);
 
         // Split into training and testing data.
         int numTraining = (int)(data.size() * split);
@@ -110,9 +111,6 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         List<Sample<String>> testDataSlice = testData.subList(
                 testRange.lb(), testRange.ub() + 1);
 
-        // A buffer to receive RandomForests with.
-        ObjectItemBuf<RandomForestCluster<String>> forestBuf = ObjectBuf.buffer();
-
         // Start timing.
         long t1 = System.currentTimeMillis();
 
@@ -120,28 +118,30 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         RandomForestCluster<String> forest = RandomForestCluster.<String>growRandomForest(
                 attrs, trainingData, treeRange.length(), n, m);
 
-        // Merge the small forest from each processor into one.
-        if (rank != 0) {
-            world.send(0, ObjectBuf.buffer(forest));
-        } else {
-            for (int i = 1; i < size; i++) {
-                world.receive(i, forestBuf);
-                forest.trees.addAll(forestBuf.item.trees);
-            }
+        // Make an array to hold and gather all the trees.
+        DecisionTree<String>[] trees = (DecisionTree<String>[])new DecisionTree[forestSize];
+        // Populate this processor's section of it.
+        int treeIndex = treeRange.lb();
+        for (DecisionTree<String> tree : forest.trees) {
+            trees[treeIndex] = tree;
+            treeIndex++;
         }
+
+        // Buffers for the tree data.
+        ObjectBuf[] treeBufs = ObjectBuf.sliceBuffers(trees, treeRanges);
+        ObjectBuf treeBuf = treeBufs[rank];
+
+        // Gather the trees from each processor.
+        world.gather(0, treeBuf, treeBufs);
 
         // Stop timing training, start timing testing.
         long t2 = System.currentTimeMillis();
 
         // Send the completed RandomForest to each processor.
-        if (rank == 0) {
-            for (int i = 1; i < size; i++) {
-                world.send(i, ObjectBuf.buffer(forest));
-            }
-        } else {
-            world.receive(0, forestBuf);
-            forest = forestBuf.item;
-        }
+        world.broadcast(0, ObjectBuf.buffer(trees));
+
+        // Convert the tree array into a list and make the RandomForest.
+        forest = new RandomForestCluster<String>(Arrays.asList(trees));
 
         // Test the forest.
         int correct = forest.test(testDataSlice);
