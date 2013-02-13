@@ -90,7 +90,7 @@ class ListUtils {
     @SuppressWarnings("unchecked")
     public static <T> List<T> sample(Collection<T> source, int m) {
         int n = source.size();
-        if (n <= m) {
+        if (n < m) {
             return new ArrayList<T>(source);
         }
         List<T> result = new ArrayList<T>(m);
@@ -101,6 +101,13 @@ class ListUtils {
             a[r] = a[i];
         }
         return result;
+    }
+
+    /**
+     * @return A new list with the elements in a random order.
+     */
+    public static <T> List<T> shuffle(Collection<T> source) {
+        return sample(source, source.size());
     }
 
 }
