@@ -122,11 +122,10 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         if (rank != 0) {
             world.send(0, ObjectBuf.buffer(forest));
         } else {
-            RandomForest<String> inForest = null;
-            ObjectItemBuf<RandomForest<String>> forestBuf = ObjectBuf.buffer(inForest);
+            ObjectItemBuf<RandomForest<String>> forestBuf = ObjectBuf.buffer();
             for (int i = 1; i < size; i++) {
                 world.receive(i, forestBuf);
-                forest.trees.addAll(inForest.trees);
+                forest.trees.addAll(forestBuf.item.trees);
             }
         }
 
