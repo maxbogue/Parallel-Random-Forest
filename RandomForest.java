@@ -7,7 +7,8 @@ import java.util.Map;
  * A RandomForest is simply a collection of DecisionTrees.
  * These trees are grown in a certain random way, and they vote on decisions.
  */
-public class RandomForest<D> {
+@SuppressWarnings("serial")
+public class RandomForest<D> implements java.io.Serializable {
     
     /**
      * Grows a random forest from a list of samples.
@@ -129,6 +130,14 @@ public class RandomForest<D> {
         System.out.println("Forest construction time: " + (t2 - t1) + " ms");
         System.out.println("Forest testing time: " + (t3 - t2) + " ms");
 
+    }
+    
+    /**
+     * This returns the trees for combining.
+     * @return
+     */
+    public List<DecisionTree<D>> getTrees(){
+        return this.trees;
     }
 
 }

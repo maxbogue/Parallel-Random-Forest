@@ -1,15 +1,13 @@
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 /**
- * Representa a decision tree with a decision of type D.
+ * Represents a decision tree with a decision of type D.
  *
  * Can either be a Decision or a Tree.
  */
-public abstract class DecisionTree<D> {
+@SuppressWarnings("serial")
+public abstract class DecisionTree<D> implements java.io.Serializable {
 
     /**
      * Grow a normal decision tree.
@@ -46,7 +44,7 @@ public abstract class DecisionTree<D> {
         // See how many unique decisions are left in the set of samples.
         Counter<D> decisions = new Counter<D>();
         for (Sample<D> sample : samples) {
-            decisions.add(sample.decision);
+        	decisions.add(sample.decision);
         }
         // If only one, then decide on it.
         if (decisions.size() == 1) {
@@ -78,7 +76,8 @@ public abstract class DecisionTree<D> {
         // For each value of the selected "best" attribute
         for (String v : selectedAttrs.get(best)) {
             // Pick out the samples with a matching value for that attribute.
-            List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(best, v));
+        	
+      List<Sample<D>> vSamples = ListUtils.filter(samples, new SamplePredicate<D>(best, v));
             // If there aren't any..,
             if (vSamples.isEmpty()) {
                 // we have to make due with the mode of the samples we had.
@@ -195,6 +194,7 @@ public abstract class DecisionTree<D> {
 /**
  * Represents a decision (leaf) node of a DecisionTree.
  */
+@SuppressWarnings("serial")
 class Decision<D> extends DecisionTree<D> {
 
     public D decision;
@@ -221,6 +221,7 @@ class Decision<D> extends DecisionTree<D> {
  * Represents a non-decision node of a decision tree.
  * Has an attribute, with a child subtree for each of the attribute's values.
  */
+@SuppressWarnings("serial")
 class Tree<D> extends DecisionTree<D> {
 
     public String attr;
