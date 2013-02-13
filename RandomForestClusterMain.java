@@ -180,10 +180,10 @@ public class RandomForestClusterMain {
         long teststart = System.currentTimeMillis();
         for(int i = 0;i < Forest.size(); i++){
             if(i!=rank)
-            clusterobject.getTrees().addAll(Forest.get(i).getTrees());
+            clusterobject.trees.addAll(Forest.get(i).trees);
         }
-        System.out.println("Number of trees in each system "+clusterobject.getTrees().size());
-        int correct_results = clusterobject.numberOfCorrectDecisions(testsamples);
+        System.out.println("Number of trees in each system "+clusterobject.trees.size());
+        int correct_results = clusterobject.test(testsamples);
         long testend = System.currentTimeMillis();
         //System.out.println("Decision by "+rank+" which is "+ result);
         if(rank!=0) 
@@ -209,7 +209,7 @@ public class RandomForestClusterMain {
     }
     private static void usage()
     {
-        System.err.println ("Usage: java  -Dpj.np=<p> <size> <n_sample_records> <m_attributes> <File>");
+        System.err.println ("Usage: java  -Dpj.np=<p> <size> <n_sample_records> <m_attributes> <data_file>");
         System.err.println ("<p> = #number of processors");
         System.err.println ("<size> = #number of trees in the forest");
         System.err.println ("<n_sample_records> = # of sample records");

@@ -46,7 +46,7 @@ public class RandomForestInput {
                 String attr = String.valueOf(i);
                 String value = lineSplit[i];
                 choices.put(attr, value);
-                
+
                 // Make sure this attr/value pair is in the attrs map.
                 if (!attrs.containsKey(attr)) {
                     attrs.put(attr, new ArrayList<String>());
@@ -58,7 +58,7 @@ public class RandomForestInput {
             }
 
             // Add our data to the list of samples.
-            samples.add(new Sample<String>(choices, decision)); 
+            samples.add(new Sample<String>(choices, decision));
 
         }
 
