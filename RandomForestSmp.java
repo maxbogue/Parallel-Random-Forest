@@ -1,13 +1,16 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.rit.pj.Comm;
 import edu.rit.pj.IntegerForLoop;
 import edu.rit.pj.IntegerSchedule;
 import edu.rit.pj.ParallelRegion;
 import edu.rit.pj.ParallelTeam;
 import edu.rit.pj.reduction.SharedObjectArray;
 import edu.rit.pj.reduction.SharedInteger;
+import edu.rit.util.Random;
 
 /**
  * A RandomForest is simply a collection of DecisionTrees.
@@ -113,16 +116,20 @@ public class RandomForestSmp<D> extends RandomForest<D> {
     public static void main(String[] args) throws Exception {
 
         // Parse arguments.
+        Comm.init(args);
         int size = Integer.parseInt(args[0]);
         int n = Integer.parseInt(args[1]);
         int m = Integer.parseInt(args[2]);
         String dataFile = args[3];
+        long seed = Long.parseLong(args[4]);
         double split;
-        if (args.length > 4) {
-            split = Double.parseDouble(args[4]) / 100.0;
+        if (args.length > 5) {
+            split = Double.parseDouble(args[5]) / 100.0;
         } else {
             split = 0.75;
         }
+
+        Random rand = Random.getInstance(seed);
 
         // Read samples and attrs from the file.
         Map<String,List<String>> attrs = new HashMap<String,List<String>>();
@@ -138,20 +145,17 @@ public class RandomForestSmp<D> extends RandomForest<D> {
         long t1 = System.currentTimeMillis();
 
         // Grow the forest.
-        RandomForest<String> forest = RandomForest
+        RandomForestSmp<String> forest = RandomForestSmp
             .<String>growRandomForest(attrs, trainingData, size, n, m);
 
-        // Stop timing.
+        // Stop timing training, start timing testing.
         long t2 = System.currentTimeMillis();
-
-        // Start timing.
-        long t3 = System.currentTimeMillis();
 
         // Test the forest.
         int correct = forest.test(testData);
 
         // Stop timing.
-        long t4 = System.currentTimeMillis();
+        long t3 = System.currentTimeMillis();
 
         // Print results.
         System.out.println(trainingData.size() + " samples used to train the forest.");
@@ -160,7 +164,7 @@ public class RandomForestSmp<D> extends RandomForest<D> {
         System.out.printf("%.2f%% (%d/%d) tests passed.\n",
                 percent, correct, testData.size());
         System.out.println("Forest construction time: " + (t2 - t1) + " ms");
-        System.out.println("Forest testing time: " + (t4 - t3) + " ms");
+        System.out.println("Forest testing time: " + (t3 - t2) + " ms");
 
     }
 

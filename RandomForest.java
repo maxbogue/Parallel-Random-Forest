@@ -111,17 +111,14 @@ public class RandomForest<D> {
         RandomForest<String> forest = RandomForest
             .<String>growRandomForest(attrs, trainingData, size, n, m);
 
-        // Stop timing.
+        // Stop timing training, start timing testing.
         long t2 = System.currentTimeMillis();
-
-        // Start timing.
-        long t3 = System.currentTimeMillis();
 
         // Test the forest.
         int correct = forest.test(testData);
 
         // Stop timing.
-        long t4 = System.currentTimeMillis();
+        long t3 = System.currentTimeMillis();
 
         // Print results.
         System.out.println(trainingData.size() + " samples used to train the forest.");
@@ -130,7 +127,7 @@ public class RandomForest<D> {
         System.out.printf("%.2f%% (%d/%d) tests passed.\n",
                 percent, correct, testData.size());
         System.out.println("Forest construction time: " + (t2 - t1) + " ms");
-        System.out.println("Forest testing time: " + (t4 - t3) + " ms");
+        System.out.println("Forest testing time: " + (t3 - t2) + " ms");
 
     }
 
