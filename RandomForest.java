@@ -82,6 +82,7 @@ public class RandomForest<D> implements java.io.Serializable {
      * Parse input data, and time the construction of a random forest.
      */
     public static void main(String[] args) throws Exception {
+        if (args.length < 4 || args.length > 5) usage();
 
         // Parse arguments.
         int size = Integer.parseInt(args[0]);
@@ -130,6 +131,12 @@ public class RandomForest<D> implements java.io.Serializable {
         System.out.println("Forest construction time: " + (t2 - t1) + " ms");
         System.out.println("Forest testing time: " + (t3 - t2) + " ms");
 
+    }
+
+    protected static void usage() {
+        System.err.println("Usage: java <forest_size> <n_sample_records> <m_attributes>"
+                + " <data_file> [<split_training_test>]");
+        System.exit(1);
     }
 
 }
