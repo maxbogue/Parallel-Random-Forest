@@ -152,13 +152,15 @@ public class RandomForestCluster<D> extends RandomForestSmp<D>
         long t3 = System.currentTimeMillis();
 
         // Print results.
-        System.out.println(trainingData.size() + " samples used to train the forest.");
-        System.out.println(testData.size() + " samples used to test the forest.");
-        double percent = 100.0 * correct / testData.size();
-        System.out.printf("%.2f%% (%d/%d) tests passed.\n",
-                percent, correct, testData.size());
-        System.out.println("Forest construction time: " + (t2 - t1) + " ms");
-        System.out.println("Forest testing time: " + (t3 - t2) + " ms");
+        if (rank == 0) {
+            System.out.println(trainingData.size() + " samples used to train the forest.");
+            System.out.println(testData.size() + " samples used to test the forest.");
+            double percent = 100.0 * correct / testData.size();
+            System.out.printf("%.2f%% (%d/%d) tests passed.\n",
+                    percent, correct, testData.size());
+            System.out.println("Forest construction time: " + (t2 - t1) + " ms");
+            System.out.println("Forest testing time: " + (t3 - t2) + " ms");
+        }
 
     }
 
